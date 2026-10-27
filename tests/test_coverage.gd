@@ -11,15 +11,20 @@ const MULTILINE_STRING_FIXTURE = "res://tests/fixtures/multiline_string.gd"
 
 
 func test_instrument_else_with_whitespace_before_colon():
+	var fixture: GDScript = load(ELSE_WHITESPACE_FIXTURE)
+	var original_source: String = fixture.source_code
+	fixture.source_code = original_source.replace("else:", "else :")
+	assert_eq(fixture.reload(), OK)
 	var collector := Coverage.ScriptCoverageCollector.new(
 		"res://addons/coverage/coverage.gd", ELSE_WHITESPACE_FIXTURE
 	)
 	collector.set_instrumented()
-	var fixture: GDScript = load(ELSE_WHITESPACE_FIXTURE)
 	var instance = fixture.new()
 	assert_eq(instance.choose(true), "if")
 	assert_eq(instance.choose(false), "else")
 	collector.set_instrumented(false)
+	fixture.source_code = original_source
+	assert_eq(fixture.reload(), OK)
 
 
 func test_instrument_multiline_string_without_inserting_counters():
