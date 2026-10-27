@@ -141,6 +141,10 @@ class ScriptCoverage:
 class BlockCounter:
 	var blocks := {"{}": 0, "()": 0, "[]": 0}
 	var lambda: BlockCounter = null
+	var in_multiline_string := false
+	var quote := ""
+	var triple_quoted := false
+	var escaped := false
 
 	func _line_ends_with_lambda(line: String) -> bool:
 		if line.ends_with("):"):
@@ -153,22 +157,35 @@ class BlockCounter:
 		return false
 
 	func _erase_string_literals(line: String) -> String:
-		# Ignoring multiline strings here .. probably need to deal with them at some point
-		var dq = '"'
-		var sq = "'"
-		var quote = ""
-		var escaped := false
-		var result = line
-		for i in len(line):
+		var result := line
+		var i := 0
+		while i < len(line):
 			if quote:
-				if !escaped && line[i] == quote:
+				if triple_quoted && !escaped && line.substr(i, 3) == quote.repeat(3):
+					for j in range(i, i + 3):
+						result[j] = "_"
+					i += 3
+					quote = ""
+					triple_quoted = false
+					escaped = false
+					continue
+				if !triple_quoted && !escaped && line[i] == quote:
+					result[i] = "_"
 					quote = ""
 				else:
 					result[i] = "_"
-				escaped = line[i] == "\\"
-			else:
-				if line[i] in [dq, sq]:
-					quote = line[i]
+				escaped = line[i] == "\\" && !escaped
+			elif line[i] in ['"', "'"]:
+				quote = line[i]
+				triple_quoted = line.substr(i, 3) == quote.repeat(3)
+				var delimiter_length := 3 if triple_quoted else 1
+				for j in range(i, i + delimiter_length):
+					result[j] = "_"
+				i += delimiter_length
+				escaped = false
+				continue
+			i += 1
+		in_multiline_string = triple_quoted
 		return result
 
 	func _merge_lambda():
@@ -342,11 +359,14 @@ class ScriptCoverageCollector:
 			var comment := ""
 			var stripped_line := line.strip_edges()
 			if stripped_line == "" || stripped_line.begins_with("#"):
+				if block.in_multiline_string:
+					block.update(stripped_line)
 				if DEBUG_SCRIPT_COVERAGE:
 					var lws = _get_leading_whitespace(line)
 					out_lines.append("%s\t# empty skip: %s" % [lws, block])
 				out_lines.append(line)
 				continue
+			var inside_multiline_string := block.in_multiline_string
 			# if we are inside a block then block_count will be > 0, we can't insert instrumentation
 			# except if it's a lambda, then we create a nested lambda block
 			var block_count := block.get_total()
@@ -356,7 +376,7 @@ class ScriptCoverageCollector:
 			block_count += block.update(stripped_line)
 			# if we are in a block or have a continuation from the last line
 			# don't add instrumentation
-			var skip := block_count > 0 || continuation
+			var skip := block_count > 0 || continuation || inside_multiline_string
 			continuation = stripped_line.ends_with("\\")
 			if skip:
 				if DEBUG_SCRIPT_COVERAGE:
@@ -413,7 +433,7 @@ class ScriptCoverageCollector:
 				"static":
 					write_var = true
 					next_state = Indent.State.STATIC_FUNC
-				"else:", "elif":
+				"else:", "else", "elif":
 					skip = true
 				"match":
 					next_state = Indent.State.MATCH
