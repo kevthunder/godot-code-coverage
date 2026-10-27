@@ -6,6 +6,39 @@ const PERFORMANCE_MARGIN := 2.1
 const SPATIAL_SCENE = preload("res://spatial.tscn")
 const Coverage = preload("res://addons/coverage/coverage.gd")
 const Other = preload("res://other.gd")
+const ELSE_WHITESPACE_FIXTURE = "res://tests/fixtures/else_whitespace.gd"
+const MULTILINE_STRING_FIXTURE = "res://tests/fixtures/multiline_string.gd"
+
+
+func test_instrument_else_with_whitespace_before_colon():
+	var fixture: GDScript = load(ELSE_WHITESPACE_FIXTURE)
+	var original_source: String = fixture.source_code
+	fixture.source_code = original_source.replace("else:", "else :")
+	assert_eq(fixture.reload(), OK)
+	var collector := Coverage.ScriptCoverageCollector.new(
+		"res://addons/coverage/coverage.gd", ELSE_WHITESPACE_FIXTURE
+	)
+	collector.set_instrumented()
+	var instance = fixture.new()
+	assert_eq(instance.choose(true), "if")
+	assert_eq(instance.choose(false), "else")
+	collector.set_instrumented(false)
+	fixture.source_code = original_source
+	assert_eq(fixture.reload(), OK)
+
+
+func test_instrument_multiline_string_without_inserting_counters():
+	var collector := Coverage.ScriptCoverageCollector.new(
+		"res://addons/coverage/coverage.gd", MULTILINE_STRING_FIXTURE
+	)
+	collector.set_instrumented()
+	var fixture: GDScript = load(MULTILINE_STRING_FIXTURE)
+	var source: String = fixture.new().get_source()
+	assert_true(source.contains("if true:"))
+	assert_true(source.contains("else :"))
+	assert_true(source.contains('print("literal")'))
+	assert_false(source.contains("__cl__"))
+	collector.set_instrumented(false)
 
 
 func test_autoload_coverage():
