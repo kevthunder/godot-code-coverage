@@ -575,7 +575,13 @@ func script_coverage(verbosity := 0):
 	result.append(
 		(
 			"%s%.1f%% Total Coverage: %s/%s lines. Target was %.1f%%"
-			% [pass_fail, coverage_percent, coverage_count(), coverage_line_count(), _coverage_target_total]
+			% [
+				pass_fail,
+				coverage_percent,
+				coverage_count(),
+				coverage_line_count(),
+				_coverage_target_total
+			]
 		)
 	)
 
