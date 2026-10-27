@@ -10,6 +10,8 @@ extends RefCounted
 enum Verbosity { NONE = 0, FILENAMES = 1, FAILING_FILES = 3, PARTIAL_FILES = 4, ALL_FILES = 5 }
 
 const MAX_QUEUE_SIZE := 10000
+const DOUBLE_QUOTE := '"'
+const SINGLE_QUOTE := "'"
 
 var coverage_collectors := {}
 
@@ -175,7 +177,7 @@ class BlockCounter:
 				else:
 					result[i] = "_"
 				escaped = line[i] == "\\" && !escaped
-			elif line[i] in ['"', "'"]:
+			elif line[i] in [DOUBLE_QUOTE, SINGLE_QUOTE]:
 				quote = line[i]
 				triple_quoted = line.substr(i, 3) == quote.repeat(3)
 				var delimiter_length := 3 if triple_quoted else 1
