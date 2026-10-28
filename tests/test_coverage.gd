@@ -8,6 +8,7 @@ const Coverage = preload("res://addons/coverage/coverage.gd")
 const Other = preload("res://other.gd")
 const ELSE_WHITESPACE_FIXTURE = "res://tests/fixtures/else_whitespace.gd"
 const MULTILINE_STRING_FIXTURE = "res://tests/fixtures/multiline_string.gd"
+const MULTILINE_CALL_FIXTURE = "res://tests/fixtures/multiline_call.gd"
 
 
 func test_instrument_else_with_whitespace_before_colon():
@@ -39,6 +40,18 @@ func test_instrument_multiline_string_without_inserting_counters():
 	assert_true(source.contains('print("literal")'))
 	assert_false(source.contains("__cl__"))
 	collector.set_instrumented(false)
+
+
+func test_instrument_multiline_call_after_apostrophe_in_comment():
+	var collector := Coverage.ScriptCoverageCollector.new(
+		"res://addons/coverage/coverage.gd", MULTILINE_CALL_FIXTURE
+	)
+	Coverage.instance.coverage_collectors[MULTILINE_CALL_FIXTURE] = collector
+	collector.set_instrumented()
+	var fixture: GDScript = load(MULTILINE_CALL_FIXTURE)
+	assert_eq(fixture.new().calculate(), 3)
+	collector.set_instrumented(false)
+	Coverage.instance.coverage_collectors.erase(MULTILINE_CALL_FIXTURE)
 
 
 func test_autoload_coverage():

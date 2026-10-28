@@ -177,6 +177,8 @@ class BlockCounter:
 				else:
 					result[i] = "_"
 				escaped = line[i] == "\\" && !escaped
+			elif line[i] == "#":
+				break
 			elif line[i] in [DOUBLE_QUOTE, SINGLE_QUOTE]:
 				quote = line[i]
 				triple_quoted = line.substr(i, 3) == quote.repeat(3)
